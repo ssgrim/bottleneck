@@ -1,0 +1,15 @@
+[
+  {
+    "Id": "Storage",
+    "Tier": "Quick",
+    "Category": "Storage",
+    "Impact": 8,
+    "Confidence": 9,
+    "Effort": 2,
+    "Priority": 1,
+    "Evidence": "Free space: 5 GB",
+    "FixId": "Cleanup",
+    "Message": "Low disk space detected.",
+    "Score": 36
+  }
+]

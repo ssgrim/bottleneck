@@ -1,0 +1,64 @@
+# Bottleneck .gitignore
+
+# Reports and logs
+Reports/*.html
+Reports/*.log
+Reports/*.json
+*.log
+
+# User-specific scan reports (keep structure, ignore content)
+artifacts/*
+!artifacts/.gitkeep
+
+# PowerShell artifacts
+*.ps1xml
+$PSHOME
+
+# Temporary files
+*.tmp
+*.temp
+~*
+
+# Windows artifacts
+Thumbs.db
+desktop.ini
+*.lnk
+
+# IDE and editor files
+.vscode/
+.vs/
+*.swp
+*.swo
+*~
+.idea/
+
+# Test results
+TestResults/
+*.trx
+*.coverage
+
+# Build outputs
+bin/
+obj/
+out/
+
+# Node modules (if using any JS tools)
+node_modules/
+
+# Package management
+*.nupkg
+packages/
+
+# Sensitive data
+*.key
+*.pem
+*.pfx
+credentials.json
+secrets.json
+
+# OS specific
+.DS_Store
+._*
+
+# Keep empty directories
+!.gitkeep

@@ -1,0 +1,4 @@
+Timestamp,TargetHost,Status,ResponseTime,DNS,Router,ISP,Notes
+2025-11-29 15:19:40,yahoo.com,Success,,True,True,True,
+2025-11-29 15:19:45,yahoo.com,Success,,True,True,True,
+2025-11-29 15:19:50,yahoo.com,Success,,True,True,True,
