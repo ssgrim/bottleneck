@@ -1,0 +1,18 @@
+{
+  "enabled": false,
+  "email": {
+    "enabled": false,
+    "to": "",
+    "smtpServer": "",
+    "port": 587,
+    "credentialName": "Bottleneck-SMTP",
+    "note": "Store SMTP credentials with: cmdkey /generic:Bottleneck-SMTP /user:your@email.com /pass:yourpassword"
+  },
+  "webhook": {
+    "enabled": false,
+    "url": "",
+    "note": "Slack webhook example: https://hooks.slack.com/services/YOUR/WEBHOOK"
+  },
+  "rateLimitMinutes": 60,
+  "minAlertLevel": "High"
+}

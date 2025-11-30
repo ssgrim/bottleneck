@@ -87,6 +87,18 @@ function Invoke-BottleneckComputerScan {
             Sort-Object LastWriteTime -Descending | Select-Object -First 1
         if ($userReports) { Invoke-Item $userReports.FullName }
     }
+
+    # Adaptive history update (Phase 2)
+    try {
+        if (Get-Command Get-CurrentMetrics -ErrorAction SilentlyContinue) {
+            $metrics = Get-CurrentMetrics
+            $summary = @{ System=$metrics.System; Network=$metrics.Network; PathQuality=$metrics.PathQuality; Speedtest=$metrics.Speedtest }
+            if (Get-Command Update-BottleneckHistory -ErrorAction SilentlyContinue) {
+                Update-BottleneckHistory -Summary $summary | Out-Null
+                Write-Host "📚 Historical metrics updated" -ForegroundColor Gray
+            }
+        }
+    } catch { Write-Verbose "History update failed: $_" }
     
     return $results
 }

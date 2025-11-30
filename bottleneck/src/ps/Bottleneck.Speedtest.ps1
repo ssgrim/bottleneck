@@ -92,6 +92,19 @@ function Invoke-BottleneckSpeedtest {
     if ($ShowTrend) {
         Show-SpeedtestTrend -MaxResults 5
     }
+
+    # Adaptive history update (Phase 2)
+    try {
+        if (Get-Command Get-CurrentMetrics -ErrorAction SilentlyContinue) {
+            $metrics = Get-CurrentMetrics
+            # Replace speedtest metrics with latest result
+            $metrics.Speedtest = @{ DownloadMbps=$result.DownMbps; UploadMbps=$result.UpMbps; LatencyMs=$result.LatencyMs; JitterMs=$result.JitterMs; Provider=$result.Provider; Timestamp=$result.Timestamp }
+            if (Get-Command Update-BottleneckHistory -ErrorAction SilentlyContinue) {
+                Update-BottleneckHistory -Summary @{ System=$metrics.System; Network=$metrics.Network; PathQuality=$metrics.PathQuality; Speedtest=$metrics.Speedtest } | Out-Null
+                Write-Host "📚 Historical metrics updated" -ForegroundColor Gray
+            }
+        }
+    } catch { Write-Verbose "History update failed: $_" }
     
     return $result
 }

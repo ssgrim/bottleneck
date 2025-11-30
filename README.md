@@ -81,6 +81,23 @@ Navigate to the `scripts` folder and run:
 .\run-network-monitor.ps1
 ```
 
+### Phase 3: Dashboards & Trends (New!)
+
+Generate trend summaries and single-page dashboards with traceroute hop changes:
+
+```powershell
+# Aggregate last 7 days of network monitor data
+pwsh -NoProfile -File .\scripts\summarize-trends.ps1 -Window "7d" -Out ".\Reports\trend-week.json"
+
+# Generate printable dashboard (A4 or Letter)
+pwsh -NoProfile -File .\scripts\generate-dashboards.ps1 -PageSize Letter -TrendPath ".\Reports\trend-week.json" -OutHtml ".\Reports\network-dashboard.html"
+```
+
+**See also:**
+- [Phase 2 Summary & Usage](DOCS-PHASE2.md) - Auto-reports, alert correlation, progress tracking
+- [Phase 3 Plan](PHASE3-PLAN.md) - Dashboards, path visuals, scheduling/trends
+- [Enhancements Backlog](ENHANCEMENTS.md) - Future integrations (Prometheus, sniffnet, speedtest, ML)
+
 ### Manual Module Usage
 
 ```powershell
