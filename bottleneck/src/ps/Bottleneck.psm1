@@ -49,6 +49,9 @@ function Set-BottleneckAdminWarning {
 . $PSScriptRoot/Bottleneck.NetworkProbes.ps1
 . $PSScriptRoot/Bottleneck.ComputerScan.ps1
 . $PSScriptRoot/Bottleneck.Version.ps1
+. $PSScriptRoot/Bottleneck.Adaptive.ps1
+. $PSScriptRoot/Bottleneck.Anomalies.ps1
+. $PSScriptRoot/Bottleneck.Targets.ps1
 . $PSScriptRoot/Bottleneck.NetworkMonitor.ps1
 . $PSScriptRoot/Bottleneck.Speedtest.ps1
 . $PSScriptRoot/Bottleneck.Metrics.ps1
@@ -112,4 +115,4 @@ function Invoke-BottleneckScan {
     return $results
 }
 
-Export-ModuleMember -Function Invoke-BottleneckScan, Invoke-BottleneckReport, Invoke-BottleneckFixCleanup, Invoke-BottleneckFixRetrim, Set-BottleneckPowerPlanHighPerformance, Invoke-BottleneckFixTriggerUpdate, Invoke-BottleneckFixDefragment, Invoke-BottleneckFixMemoryDiagnostic, Invoke-BottleneckFixRestartServices, Invoke-BottleneckNetworkScan, Invoke-BottleneckNetworkRootCause, Invoke-BottleneckNetworkCsvDiagnostics, Request-ElevatedScan, Set-BottleneckAdminWarning, Invoke-BottleneckComputerScan, Invoke-BottleneckNetworkMonitor, Invoke-BottleneckSpeedtest, Get-SpeedtestHistory, Get-BottleneckNetworkTrafficSnapshot, Export-BottleneckMetrics, Test-BottleneckThresholds, New-AlertThresholdConfig, Get-BottleneckVersion, Register-BottleneckScheduledScan, Get-BottleneckScheduledScans, Remove-BottleneckScheduledScan
+Export-ModuleMember -Function Invoke-BottleneckScan, Invoke-BottleneckReport, Invoke-BottleneckFixCleanup, Invoke-BottleneckFixRetrim, Set-BottleneckPowerPlanHighPerformance, Invoke-BottleneckFixTriggerUpdate, Invoke-BottleneckFixDefragment, Invoke-BottleneckFixMemoryDiagnostic, Invoke-BottleneckFixRestartServices, Invoke-BottleneckNetworkScan, Invoke-BottleneckNetworkRootCause, Invoke-BottleneckNetworkCsvDiagnostics, Request-ElevatedScan, Set-BottleneckAdminWarning, Invoke-BottleneckComputerScan, Invoke-BottleneckNetworkMonitor, Invoke-BottleneckSpeedtest, Get-SpeedtestHistory, Get-BottleneckNetworkTrafficSnapshot, Export-BottleneckMetrics, Test-BottleneckThresholds, New-AlertThresholdConfig, Get-BottleneckVersion, Update-BottleneckHistory, Get-BottleneckDriftReport, Get-BottleneckRecurringIssues, Get-BottleneckAdaptiveRecommendations, Get-BottleneckBaseTargets, Measure-TargetPerformanceBatch, Get-RecommendedTargets, Rotate-AdaptiveTargets, Get-LatencyAnomalies, Get-LossBursts, Get-JitterVolatility, Register-BottleneckScheduledScan, Get-BottleneckScheduledScans, Remove-BottleneckScheduledScan

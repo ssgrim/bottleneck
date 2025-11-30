@@ -1,0 +1,50 @@
+{
+  "profiles": {
+    "corporate": {
+      "description": "Corporate network with VPN and DNS restrictions",
+      "targets": [
+        "dns.company.local",
+        "gateway.company.local",
+        "8.8.8.8"
+      ],
+      "interval": 15,
+      "duration": "1hour",
+      "tracerouteInterval": 20,
+      "thresholds": {
+        "maxLatencyMs": 150,
+        "maxFailsPerTarget": 5
+      }
+    },
+    "home": {
+      "description": "Home network with typical ISP setup",
+      "targets": [
+        "8.8.8.8",
+        "1.1.1.1",
+        "www.google.com",
+        "www.cloudflare.com"
+      ],
+      "interval": 10,
+      "duration": "30min",
+      "tracerouteInterval": 15,
+      "thresholds": {
+        "maxLatencyMs": 100,
+        "maxFailsPerTarget": 3
+      }
+    },
+    "lab": {
+      "description": "Lab/testing environment with aggressive sampling",
+      "targets": [
+        "192.168.1.1",
+        "8.8.8.8",
+        "1.1.1.1"
+      ],
+      "interval": 5,
+      "duration": "15min",
+      "tracerouteInterval": 10,
+      "thresholds": {
+        "maxLatencyMs": 200,
+        "maxFailsPerTarget": 10
+      }
+    }
+  }
+}
