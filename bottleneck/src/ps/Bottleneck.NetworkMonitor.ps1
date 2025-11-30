@@ -20,6 +20,9 @@ function Invoke-BottleneckNetworkMonitor {
     .PARAMETER Targets
     Hosts to monitor (default: intelligently selected based on history).
     
+    .PARAMETER UseAdaptiveTargets
+    When set, selects top scored targets from performance records.
+
     .PARAMETER TracerouteInterval
     Minutes between traceroute snapshots (default: 15, 0 to disable).
     
@@ -29,6 +32,9 @@ function Invoke-BottleneckNetworkMonitor {
     .EXAMPLE
     Invoke-BottleneckNetworkMonitor -Duration '4hours' -Interval 5 -Targets @('1.1.1.1','8.8.8.8')
     
+    .EXAMPLE
+    Invoke-BottleneckNetworkMonitor -Duration '30min' -UseAdaptiveTargets
+
     .NOTES
     Press Ctrl+C to stop gracefully and generate report.
     #>
@@ -41,6 +47,8 @@ function Invoke-BottleneckNetworkMonitor {
         [int]$Interval = 10,
         
         [string[]]$Targets,
+
+        [switch]$UseAdaptiveTargets,
         
         [int]$TracerouteInterval = 15
     )
@@ -58,9 +66,13 @@ function Invoke-BottleneckNetworkMonitor {
         default  { 1 }
     }
     
-    # Adaptive target selection: use history to pick best targets
+    # Adaptive / Scored target selection
     if (-not $Targets) {
-        $Targets = Get-AdaptiveNetworkTargets
+        if ($UseAdaptiveTargets -and (Get-Command Get-RecommendedTargets -ErrorAction SilentlyContinue)) {
+            $Targets = Get-RecommendedTargets -Count 3
+        } else {
+            $Targets = Get-AdaptiveNetworkTargets
+        }
     }
     
     $primaryTarget = $Targets[0]
@@ -248,6 +260,21 @@ function Invoke-BottleneckNetworkMonitor {
             Save-NetworkBaseline -Results $script:MonitorResults -RCA $rca -Diagnostics $diag
             
             Write-Host "`n💡 Tip: Run 'Invoke-BottleneckNetworkScan' to generate full HTML report`n" -ForegroundColor Gray
+
+            # Adaptive history update (Phase 2)
+            try {
+                if (Get-Command Get-CurrentMetrics -ErrorAction SilentlyContinue) {
+                    $metrics = Get-CurrentMetrics
+                    # Override network metrics with fresh RCA summary for consistency
+                    $metrics.Network = @{ SuccessRate = $rca.Summary.SuccessPct; P95Latency = $rca.Summary.P95LatencyMs; AvgLatency = $rca.Summary.AvgLatencyMs; Drops = $rca.Summary.Drops; LikelyCause = $rca.LikelyCause }
+                    # Worst hop if available
+                    if ($worst) { $metrics.PathQuality = @{ WorstHopIP = $worst.IP; WorstHopLossPercent = $worst.LossPct; WorstHopP95Ms = $worst.P95Ms } }
+                    if (Get-Command Update-BottleneckHistory -ErrorAction SilentlyContinue) {
+                        Update-BottleneckHistory -Summary @{ System=$metrics.System; Network=$metrics.Network; PathQuality=$metrics.PathQuality; Speedtest=$metrics.Speedtest } | Out-Null
+                        Write-Host "📚 Historical metrics updated" -ForegroundColor Gray
+                    }
+                }
+            } catch { Write-Verbose "History update failed: $_" }
             
         } catch {
             Write-Warning "RCA generation failed: $_"
