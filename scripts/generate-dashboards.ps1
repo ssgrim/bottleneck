@@ -24,6 +24,14 @@ if ($trend.Targets) {
   }
 }
 
+# Simple heuristic for alert level: high fails or high latency = warn/crit
+$alertBadge = "ok"
+$alertText = "Stable"
+$totalFails = ($targets | Measure-Object FailCount -Sum -ErrorAction SilentlyContinue).Sum
+$maxAvg = ($targets | Measure-Object AvgLatencyMs -Maximum -ErrorAction SilentlyContinue).Maximum
+if ($totalFails -gt 10 -or $maxAvg -gt 200) { $alertBadge = "crit"; $alertText = "Critical" }
+elseif ($totalFails -gt 3 -or $maxAvg -gt 100) { $alertBadge = "warn"; $alertText = "Warnings" }
+
 # Traceroute hop-change parsing
 function Parse-LineHop([string]$l) {
     if ($l -match '^\s*(\d+)\s+([^\s]+)\s+(\d+\.\d+)\s*ms') {
@@ -121,11 +129,10 @@ body{font-family:Segoe UI,Arial,sans-serif;margin:0;padding:16px;background:#fff
 
 <div class="card">
   <div>
-    <span class="badge ok">Stable</span>
-    <span class="badge warn">Warnings</span>
-    <span class="badge crit">Critical</span>
+    <span class="badge $alertBadge">$alertText</span>
+    <span class="small">Fails: $totalFails | Max Avg Latency: $maxAvg ms</span>
   </div>
-  <div class="small">Severity badges are placeholders; wired as we add alert fusion.</div>
+  <div class="small">Heuristic: &gt;10 fails or &gt;200ms = Critical; &gt;3 fails or &gt;100ms = Warning</div>
 </div>
 
 <div class="grid">

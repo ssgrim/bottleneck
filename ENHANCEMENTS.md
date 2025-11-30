@@ -60,6 +60,19 @@ This captures ideas that surfaced during Phase 2 to inform Phase 3 and beyond (u
 - MimicNet-inspired ML: Explore ML models for predicting congestion/anomalies; synthetic traffic generation for training.
 - Simulation bridge: Optional OMNeT++/MimicNet data ingestion to compare simulated vs real-world runs.
 
+## Phase 4+ Deferred Items
+
+- Advanced alert fusion: Integrate full anomaly detection (z-score, bursts, volatility) with `Get-NetworkAlertLevel` for real-time badge computation.
+- Scheduler: Weekly baseline task runner with retention policies and cron-like config.
+- Config profiles: JSON loader for network/corporate/home presets (targets, thresholds, intervals).
+- Prometheus exporter: Endpoint exposing latency/loss/jitter and per-hop RTT for Grafana dashboards.
+- Notification hooks: Email/Webhook on High/Critical alerts with correlation context and run metadata.
+- PDF export: Headless HTML-to-PDF conversion with automatic file naming.
+- Mobile-responsive dashboard: Collapsible sections and touch-friendly controls.
+- Health checks: Pre-flight tests (DNS resolution, gateway reachability, MTU probing).
+- Async ping/traceroute pool: Increase throughput while limiting resource usage.
+- Clock-jump resilience: Detect hibernation/sleep and mark samples invalid.
+
 ### Project references and actionable items
 
 #### mtr-exporter
