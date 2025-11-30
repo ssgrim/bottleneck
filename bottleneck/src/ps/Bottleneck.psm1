@@ -48,6 +48,7 @@ function Set-BottleneckAdminWarning {
 . $PSScriptRoot/Bottleneck.NetworkDeep.ps1
 . $PSScriptRoot/Bottleneck.NetworkProbes.ps1
 . $PSScriptRoot/Bottleneck.ComputerScan.ps1
+. $PSScriptRoot/Bottleneck.Version.ps1
 . $PSScriptRoot/Bottleneck.NetworkMonitor.ps1
 . $PSScriptRoot/Bottleneck.Speedtest.ps1
 . $PSScriptRoot/Bottleneck.Metrics.ps1
@@ -111,4 +112,4 @@ function Invoke-BottleneckScan {
     return $results
 }
 
-Export-ModuleMember -Function Invoke-BottleneckScan, Invoke-BottleneckReport, Invoke-BottleneckFixCleanup, Invoke-BottleneckFixRetrim, Set-BottleneckPowerPlanHighPerformance, Invoke-BottleneckFixTriggerUpdate, Invoke-BottleneckFixDefragment, Invoke-BottleneckFixMemoryDiagnostic, Invoke-BottleneckFixRestartServices, Invoke-BottleneckNetworkScan, Invoke-BottleneckNetworkRootCause, Invoke-BottleneckNetworkCsvDiagnostics, Request-ElevatedScan, Set-BottleneckAdminWarning, Invoke-BottleneckComputerScan, Invoke-BottleneckNetworkMonitor, Invoke-BottleneckSpeedtest, Get-SpeedtestHistory, Get-BottleneckNetworkTrafficSnapshot, Export-BottleneckMetrics, Test-BottleneckThresholds, New-AlertThresholdConfig, Register-BottleneckScheduledScan, Get-BottleneckScheduledScans, Remove-BottleneckScheduledScan
+Export-ModuleMember -Function Invoke-BottleneckScan, Invoke-BottleneckReport, Invoke-BottleneckFixCleanup, Invoke-BottleneckFixRetrim, Set-BottleneckPowerPlanHighPerformance, Invoke-BottleneckFixTriggerUpdate, Invoke-BottleneckFixDefragment, Invoke-BottleneckFixMemoryDiagnostic, Invoke-BottleneckFixRestartServices, Invoke-BottleneckNetworkScan, Invoke-BottleneckNetworkRootCause, Invoke-BottleneckNetworkCsvDiagnostics, Request-ElevatedScan, Set-BottleneckAdminWarning, Invoke-BottleneckComputerScan, Invoke-BottleneckNetworkMonitor, Invoke-BottleneckSpeedtest, Get-SpeedtestHistory, Get-BottleneckNetworkTrafficSnapshot, Export-BottleneckMetrics, Test-BottleneckThresholds, New-AlertThresholdConfig, Get-BottleneckVersion, Register-BottleneckScheduledScan, Get-BottleneckScheduledScans, Remove-BottleneckScheduledScan
