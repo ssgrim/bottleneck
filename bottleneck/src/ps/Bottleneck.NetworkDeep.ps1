@@ -7,6 +7,10 @@ try {
         $logPath = Join-Path $PSScriptRoot 'Bottleneck.Logging.ps1'
         if (Test-Path $logPath) { . $logPath }
     }
+    if (-not (Get-Command Get-FusedAlertLevel -ErrorAction SilentlyContinue)) {
+        $alertsPath = Join-Path $PSScriptRoot 'Bottleneck.Alerts.ps1'
+        if (Test-Path $alertsPath) { . $alertsPath }
+    }
 } catch {}
 
 function Invoke-BottleneckNetworkRootCause {
@@ -139,7 +143,7 @@ function Invoke-BottleneckNetworkRootCause {
         'Congestion/Interference' { $reco += 'Reduce concurrent heavy usage, prefer wired, optimize router placement and channel.' }
     }
 
-    [pscustomobject]@{
+    $output = [pscustomobject]@{
         Summary        = $stats
         JitterByMinute = $byMinute
         FailureClusters= $clusters
@@ -152,6 +156,7 @@ function Invoke-BottleneckNetworkRootCause {
     }
     $level = $output.FusedAlertLevel
     if ($level) { Write-Host "Network Fused Alert Level: $level" -ForegroundColor Yellow }
+    return $output
 }
 
 # Advanced CSV diagnostics (per-target distributions, spikes, jitter, comparison)
@@ -233,7 +238,7 @@ function Invoke-BottleneckNetworkCsvDiagnostics {
         DifferentialMs= if($best -and $worst){ [math]::Round(($worst.AvgLatencyMs - $best.AvgLatencyMs),1) } else { $null }
     }
 
-    [pscustomobject]@{
+    $result = [pscustomobject]@{
         PerTargetStats = $perTarget
         SpikeMinutes   = $spikeMinutes
         TopJitterMinutes = $jitter
@@ -242,4 +247,5 @@ function Invoke-BottleneckNetworkCsvDiagnostics {
         SourceCsv = $CsvPath
     }
     if ($result.FusedAlertLevel) { Write-Host "CSV Diagnostics Fused Alert: $($result.FusedAlertLevel)" -ForegroundColor Yellow }
+    return $result
 }

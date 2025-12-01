@@ -23,6 +23,7 @@ Load-ModuleFile 'Bottleneck.Checks.ps1'
 Load-ModuleFile 'Bottleneck.Fixes.ps1'
 Load-ModuleFile 'Bottleneck.Report.ps1'
 Load-ModuleFile 'Bottleneck.ReportUtils.ps1'
+Load-ModuleFile 'Bottleneck.Events.ps1'
 Load-ModuleFile 'Bottleneck.Thermal.ps1'
 Load-ModuleFile 'Bottleneck.PDF.ps1'
 Load-ModuleFile 'Bottleneck.Battery.ps1'
@@ -103,4 +104,4 @@ function Invoke-BottleneckScan {
     return $results
 }
 
-Export-ModuleMember -Function Invoke-BottleneckScan, Invoke-BottleneckReport, Invoke-BottleneckFixCleanup, Invoke-BottleneckFixRetrim, Set-BottleneckPowerPlanHighPerformance, Invoke-BottleneckFixTriggerUpdate, Invoke-BottleneckFixDefragment, Invoke-BottleneckFixMemoryDiagnostic, Invoke-BottleneckFixRestartServices, Get-FusedAlertLevel
+Export-ModuleMember -Function Invoke-BottleneckScan, Invoke-BottleneckReport, Invoke-BottleneckFixCleanup, Invoke-BottleneckFixRetrim, Set-BottleneckPowerPlanHighPerformance, Invoke-BottleneckFixTriggerUpdate, Invoke-BottleneckFixDefragment, Invoke-BottleneckFixMemoryDiagnostic, Invoke-BottleneckFixRestartServices, Get-FusedAlertLevel, Get-SafeWinEvent

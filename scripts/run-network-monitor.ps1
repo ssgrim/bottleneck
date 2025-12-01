@@ -5,7 +5,8 @@
 param(
     [Parameter()][string]$TargetHost = 'www.yahoo.com',
     [Parameter()][double]$DurationHours = 4,
-    [Parameter()][int]$PingIntervalSeconds = 5
+    [Parameter()][int]$PingIntervalSeconds = 5,
+    [Parameter()][int]$TraceIntervalMinutes = 5
 )
 
 Write-Host "========================================" -ForegroundColor Cyan
@@ -34,6 +35,7 @@ Write-Host "Configuration:" -ForegroundColor Green
 Write-Host "  Target: $TargetHost" -ForegroundColor White
 Write-Host "  Duration: $DurationHours hours" -ForegroundColor White
 Write-Host "  Interval: $PingIntervalSeconds seconds" -ForegroundColor White
+Write-Host "  Traceroute Interval: $TraceIntervalMinutes minutes" -ForegroundColor White
 Write-Host "  Estimated pings: $([math]::Floor(([double]$DurationHours * 3600) / $PingIntervalSeconds))" -ForegroundColor White
 Write-Host ""
 
@@ -71,6 +73,7 @@ $logFile = Join-Path $logDir "network-monitor-$timestamp.csv"
 $reportFile = Join-Path $logDir "network-monitor-$timestamp.html"
  $outFile = Join-Path $logDir "network-monitor-$timestamp.out"
  function Write-MonitorOut { param([string]$Text) $ts = Get-Date -Format 'yyyy-MM-dd HH:mm:ss'; "$ts | $Text" | Out-File -FilePath $outFile -Append -Encoding UTF8 }
+ $traceDir = $logDir
 
 # Initialize CSV with headers
 "Timestamp,TargetHost,Status,ResponseTime,DNS,Router,ISP,Notes" | Out-File $logFile -Encoding UTF8
@@ -91,6 +94,7 @@ $responseTimes = @()
 $dnsIssues = 0
 $routerIssues = 0
 $ispIssues = 0
+ $lastTraceTime = $startTime.AddMinutes(-$TraceIntervalMinutes)
 
 Write-Host ""
 Write-Host "========================================" -ForegroundColor Green
@@ -160,6 +164,13 @@ try {
                 Write-Host "⚠ SPIKE " -NoNewline -ForegroundColor Yellow
                 Write-Host "$($responseTime)ms" -ForegroundColor Red
                 $notes = "High latency spike"
+                # Run traceroute on spike if interval elapsed
+                if (((Get-Date) - $lastTraceTime).TotalMinutes -ge $TraceIntervalMinutes) {
+                    $lastTraceTime = Get-Date
+                    $traceFile = Join-Path $traceDir ("traceroute-" + (Get-Date -Format 'yyyy-MM-dd_HH-mm-ss') + ".txt")
+                    Write-MonitorOut "Running traceroute (spike) to $TargetHost -> $traceFile"
+                    try { tracert $TargetHost | Out-File -FilePath $traceFile -Encoding UTF8 } catch {}
+                }
             } elseif ($totalPings % 10 -eq 0) {
                 # Show periodic updates
                 Write-Host "[$($pingTime.ToString('HH:mm:ss'))] " -NoNewline -ForegroundColor Gray
@@ -195,6 +206,11 @@ try {
                 Write-Host "[$($pingTime.ToString('HH:mm:ss'))] " -NoNewline -ForegroundColor Gray
                 Write-Host "✗ DROP DETECTED " -NoNewline -ForegroundColor Red
                 Write-Host "- $failureType" -ForegroundColor Yellow
+                # Run traceroute on drop immediately
+                $lastTraceTime = Get-Date
+                $traceFile = Join-Path $traceDir ("traceroute-" + (Get-Date -Format 'yyyy-MM-dd_HH-mm-ss') + ".txt")
+                Write-MonitorOut "Running traceroute (drop) to $TargetHost -> $traceFile"
+                try { tracert $TargetHost | Out-File -FilePath $traceFile -Encoding UTF8 } catch {}
             } else {
                 # Drop continues
                 $dropDuration = (Get-Date) - $currentDrop.StartTime
@@ -203,6 +219,19 @@ try {
                     Write-Host "✗ Still down " -NoNewline -ForegroundColor Red
                     Write-Host "for $([math]::Round($dropDuration.TotalSeconds,1))s" -ForegroundColor Yellow
                 }
+            }
+        }
+        # Scheduled traceroute based on interval
+        if (((Get-Date) - $lastTraceTime).TotalMinutes -ge $TraceIntervalMinutes) {
+            $lastTraceTime = Get-Date
+            $traceFile = Join-Path $traceDir ("traceroute-" + (Get-Date -Format 'yyyy-MM-dd_HH-mm-ss') + ".txt")
+            Write-MonitorOut "Running scheduled traceroute to $TargetHost -> $traceFile"
+            try { tracert $TargetHost | Out-File -FilePath $traceFile -Encoding UTF8 } catch {}
+            # Also trace to router if available
+            if ($routerIP) {
+                $routerTraceFile = Join-Path $traceDir ("traceroute-router-" + (Get-Date -Format 'yyyy-MM-dd_HH-mm-ss') + ".txt")
+                Write-MonitorOut "Running scheduled traceroute to router $routerIP -> $routerTraceFile"
+                try { tracert $routerIP | Out-File -FilePath $routerTraceFile -Encoding UTF8 } catch {}
             }
         }
         

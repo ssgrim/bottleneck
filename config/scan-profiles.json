@@ -1,0 +1,5 @@
+{
+  "quick": { "minutes": 2, "ai": false, "traceIntervalMinutes": 1 },
+  "standard": { "minutes": 15, "ai": true, "traceIntervalMinutes": 5 },
+  "deep": { "minutes": 60, "ai": true, "traceIntervalMinutes": 5 }
+}
