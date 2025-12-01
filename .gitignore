@@ -1,4 +1,5 @@
-# Bottleneck .gitignore
+# Exported log bundles
+Reports/*.zip# Bottleneck .gitignore
 
 # Reports and logs
 Reports/*.html

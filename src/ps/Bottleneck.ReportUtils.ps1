@@ -2,7 +2,10 @@
 function Get-BottleneckEventLogSummary {
     param([int]$Days = 7)
     $since = (Get-Date).AddDays(-$Days)
-    $events = Get-WinEvent -FilterHashtable @{LogName='System'; StartTime=$since} -MaxEvents 1000
+    $filter = @{ StartTime = $since }
+    # Guard LogName to avoid null errors
+    $filter['LogName'] = 'System'
+    $events = Get-WinEvent -FilterHashtable $filter -MaxEvents 1000 -ErrorAction SilentlyContinue
     $errors = $events | Where-Object { $_.LevelDisplayName -eq 'Error' }
     $warnings = $events | Where-Object { $_.LevelDisplayName -eq 'Warning' }
     [PSCustomObject]@{

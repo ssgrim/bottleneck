@@ -4,7 +4,7 @@
 [CmdletBinding()]
 param(
     [Parameter()][string]$TargetHost = 'www.yahoo.com',
-    [Parameter()][int]$DurationHours = 4,
+    [Parameter()][double]$DurationHours = 4,
     [Parameter()][int]$PingIntervalSeconds = 5
 )
 
@@ -20,7 +20,7 @@ if ($PSBoundParameters.Count -eq 0) {
     Write-Host ""
     
     $durationInput = Read-Host "Enter monitoring duration in hours (default: 4)"
-    if ($durationInput) { $DurationHours = [int]$durationInput }
+    if ($durationInput) { $DurationHours = [double]$durationInput }
     
     $targetInput = Read-Host "Enter target host to monitor (default: www.yahoo.com)"
     if ($targetInput) { $TargetHost = $targetInput }
@@ -34,7 +34,7 @@ Write-Host "Configuration:" -ForegroundColor Green
 Write-Host "  Target: $TargetHost" -ForegroundColor White
 Write-Host "  Duration: $DurationHours hours" -ForegroundColor White
 Write-Host "  Interval: $PingIntervalSeconds seconds" -ForegroundColor White
-Write-Host "  Estimated pings: $([math]::Floor(($DurationHours * 3600) / $PingIntervalSeconds))" -ForegroundColor White
+Write-Host "  Estimated pings: $([math]::Floor(([double]$DurationHours * 3600) / $PingIntervalSeconds))" -ForegroundColor White
 Write-Host ""
 
 # Calculate end time
@@ -69,13 +69,17 @@ $timestamp = Get-Date -Format 'yyyy-MM-dd_HH-mm-ss'
 $logDir = "$PSScriptRoot/../Reports"
 $logFile = Join-Path $logDir "network-monitor-$timestamp.csv"
 $reportFile = Join-Path $logDir "network-monitor-$timestamp.html"
+ $outFile = Join-Path $logDir "network-monitor-$timestamp.out"
+ function Write-MonitorOut { param([string]$Text) $ts = Get-Date -Format 'yyyy-MM-dd HH:mm:ss'; "$ts | $Text" | Out-File -FilePath $outFile -Append -Encoding UTF8 }
 
 # Initialize CSV with headers
 "Timestamp,TargetHost,Status,ResponseTime,DNS,Router,ISP,Notes" | Out-File $logFile -Encoding UTF8
+ Write-MonitorOut "Initialized monitor: target=$TargetHost durationHours=$DurationHours intervalSec=$PingIntervalSeconds csv=$logFile html=$reportFile"
 
 # Get router IP (default gateway)
 $routerIP = (Get-NetRoute -DestinationPrefix '0.0.0.0/0' | Select-Object -First 1).NextHop
 Write-Host "Detected router: $routerIP" -ForegroundColor Cyan
+ Write-MonitorOut "Detected router: $routerIP"
 
 # Monitoring variables
 $totalPings = 0
@@ -104,7 +108,9 @@ $null = Register-EngineEvent -SourceIdentifier PowerShell.Exiting -Action {
 
 try {
     while ((Get-Date) -lt $endTime) {
+    Write-MonitorOut "Monitoring loop start: start=$($startTime.ToString('yyyy-MM-dd HH:mm:ss')) end=$($endTime.ToString('yyyy-MM-dd HH:mm:ss'))"
         $pingTime = Get-Date
+            Write-MonitorOut "Ping#$totalPings status=$status rt=$responseTime dns=$dnsSuccess router=$routerSuccess notes='$notes'"
         $totalPings++
         
         # Test DNS resolution
@@ -207,6 +213,7 @@ try {
         Start-Sleep -Seconds $PingIntervalSeconds
     }
 } finally {
+        Write-MonitorOut "Monitoring loop complete: pings=$totalPings success=$successfulPings fail=$failedPings"
     # Restore power plan
     Write-Host ""
     Write-Host "========================================" -ForegroundColor Cyan
@@ -260,6 +267,7 @@ try {
     
     # Generate HTML report
     Write-Host "Generating report..." -ForegroundColor Yellow
+    Write-MonitorOut "Generating report: $reportFile"
     
     # Create timeline of drops
     $dropTimeline = ""
@@ -374,7 +382,9 @@ $(if ($maxResponseTime -gt 200) { "<li><strong>High latency detected</strong> - 
     
     Write-Host "Report saved to: $reportFile" -ForegroundColor Green
     Write-Host "Log file saved to: $logFile" -ForegroundColor Green
+    Write-MonitorOut "Saved report=$reportFile csv=$logFile"
     Write-Host ""
     Write-Host "Opening report..." -ForegroundColor Cyan
     Start-Process $reportFile
+    Write-MonitorOut "Opened report viewer"
 }

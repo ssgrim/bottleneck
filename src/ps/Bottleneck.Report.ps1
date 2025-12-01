@@ -37,6 +37,12 @@ function Invoke-BottleneckReport {
     }
     $prev = Get-BottleneckPreviousScan -ReportsPath $ReportsPath
     $eventSummary = Get-BottleneckEventLogSummary -Days 7
+    # Try to compute network fused alert level from recent monitor CSV
+    $fusedAlert = $null
+    try {
+        $rca = Invoke-BottleneckNetworkRootCause -DisableProbes -DisableTraceroute
+        if ($rca -and $rca.FusedAlertLevel) { $fusedAlert = $rca.FusedAlertLevel }
+    } catch { }
     $html = @"
 <html>
 <head>
@@ -303,6 +309,14 @@ Please provide:
 <div class="metric-label">Avg Performance Score</div>
 <div class="metric-value">$([math]::Round(($Results | Measure-Object Score -Average).Average,1))</div>
 </div>
+$(if ($fusedAlert) { @"
+<div class=\"metrics-grid\">
+    <div class=\"metric-card\">
+        <div class=\"metric-label\">Network Fused Alert</div>
+        <div class=\"metric-value\">$fusedAlert</div>
+    </div>
+</div>
+"@ })
 </div>
 </div>
 "@

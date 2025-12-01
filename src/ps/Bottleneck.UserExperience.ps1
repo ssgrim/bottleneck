@@ -9,12 +9,14 @@ function Test-BottleneckBootTime {
         $uptime = (Get-Date) - $lastBoot
         
         # Get boot performance data from event log
+        $startBoot = $lastBoot
+        if (-not $startBoot) { $startBoot = (Get-Date).AddDays(-7) }
         $bootEvents = Invoke-WithTimeout -TimeoutSeconds 10 -ScriptBlock {
             Get-WinEvent -FilterHashtable @{
                 LogName='System'
                 ProviderName='Microsoft-Windows-Diagnostics-Performance'
                 Id=100
-                StartTime=$lastBoot
+                StartTime=$using:startBoot
             } -MaxEvents 1 -ErrorAction SilentlyContinue
         }
         
@@ -30,7 +32,7 @@ function Test-BottleneckBootTime {
                 LogName='System'
                 ProviderName='Microsoft-Windows-Diagnostics-Performance'
                 Id=101,102,103
-                StartTime=$lastBoot
+                StartTime=$using:startBoot
             } -MaxEvents 20 -ErrorAction SilentlyContinue
         }
         

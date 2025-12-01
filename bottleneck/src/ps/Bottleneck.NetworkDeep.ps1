@@ -1,6 +1,14 @@
 # Bottleneck.NetworkDeep.ps1
 # Deep network root-cause analysis utilities
 
+# Ensure logging initializer is available when invoked standalone
+try {
+    if (-not (Get-Command Initialize-BottleneckLogging -ErrorAction SilentlyContinue)) {
+        $logPath = Join-Path $PSScriptRoot 'Bottleneck.Logging.ps1'
+        if (Test-Path $logPath) { . $logPath }
+    }
+} catch {}
+
 function Invoke-BottleneckNetworkRootCause {
     [CmdletBinding()]
     param(
@@ -139,8 +147,11 @@ function Invoke-BottleneckNetworkRootCause {
         TraceRoute     = $trace
         LikelyCause    = $cause
         Recommendations= $reco
+        FusedAlertLevel= (Get-FusedAlertLevel -LatencySpikes ($byMinute | Where-Object { $_.JitterMs -gt 0 -and $_.AvgMs -gt 0 -and $_.AvgMs -ge ($stats.P95LatencyMs) }) -LossBursts $clusters -JitterVolatility ($byMinute | Where-Object { $_.JitterMs -ge 15 }))
         SourceCsv      = $CsvPath
     }
+    $level = $output.FusedAlertLevel
+    if ($level) { Write-Host "Network Fused Alert Level: $level" -ForegroundColor Yellow }
 }
 
 # Advanced CSV diagnostics (per-target distributions, spikes, jitter, comparison)
@@ -227,6 +238,8 @@ function Invoke-BottleneckNetworkCsvDiagnostics {
         SpikeMinutes   = $spikeMinutes
         TopJitterMinutes = $jitter
         HostComparison = $comparison
+        FusedAlertLevel = (Get-FusedAlertLevel -LatencySpikes $spikeMinutes -LossBursts ($rows | Where-Object { -not $_.Success } | Group-Object { ([datetime]$_.Time).ToString('yyyy-MM-dd HH:mm') } | Where-Object { $_.Count -ge 3 }) -JitterVolatility ($jitter | Where-Object { $_.JitterMs -ge 15 }))
         SourceCsv = $CsvPath
     }
+    if ($result.FusedAlertLevel) { Write-Host "CSV Diagnostics Fused Alert: $($result.FusedAlertLevel)" -ForegroundColor Yellow }
 }

@@ -8,12 +8,9 @@ function Test-BottleneckServiceHealth {
         $failedCount = $services.Count
 
         # Check for slow-starting services from event log
-        $slowServices = Get-WinEvent -FilterHashtable @{
-            LogName='System'
-            ProviderName='Service Control Manager'
-            Id=7000,7001,7011
-            StartTime=(Get-Date).AddDays(-7)
-        } -ErrorAction SilentlyContinue
+        $svcStart = (Get-Date).AddDays(-7)
+        $svcFilter = @{ LogName='System'; ProviderName='Service Control Manager'; Id=7000,7001,7011; StartTime=$svcStart }
+        $slowServices = Get-WinEvent -FilterHashtable $svcFilter -ErrorAction SilentlyContinue
         $slowCount = if ($slowServices) { $slowServices.Count } else { 0 }
 
         $impact = if ($failedCount -gt 5 -or $slowCount -gt 10) { 7 } elseif ($failedCount -gt 0 -or $slowCount -gt 0) { 4 } else { 2 }
