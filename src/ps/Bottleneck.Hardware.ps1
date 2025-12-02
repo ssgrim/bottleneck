@@ -104,13 +104,41 @@ function Test-BottleneckCPUThrottle {
         }
         catch {}
 
-        $impact = if ($throttlePercent -gt 30 -or $thermalThrottle) { 7 } elseif ($throttlePercent -gt 15) { 5 } else { 2 }
+        # Detect if this is a laptop (battery present)
+        $isLaptop = $false
+        try {
+            $battery = Get-CimInstance Win32_Battery -ErrorAction SilentlyContinue
+            $isLaptop = ($null -ne $battery)
+        } catch {}
+        
+        # Adjust impact based on system type and actual throttling
+        $impact = if ($throttlePercent -gt 30 -or $thermalThrottle) { 
+            7 
+        } elseif ($throttlePercent -gt 20 -and $isLaptop) { 
+            4  # More tolerant for laptops
+        } elseif ($throttlePercent -gt 15) { 
+            5 
+        } else { 
+            2 
+        }
         $confidence = 7
         $effort = 2
         $priority = 3
         $evidence = "Clock: $currentClockSpeed / $maxClockSpeed MHz (${throttlePercent}% throttle), Thermal: $thermalThrottle"
         $fixId = if ($isPowerSaver) { 'PowerPlanHighPerformance' } else { '' }
-        $msg = if ($throttlePercent -gt 30 -or $thermalThrottle) { 'CPU throttling detected. Check thermals or power settings.' } elseif ($throttlePercent -gt 15) { 'Moderate CPU throttling.' } else { 'CPU running at normal speed.' }
+        $msg = if ($throttlePercent -gt 30 -or $thermalThrottle) { 
+            'Significant CPU throttling detected. Check thermals or power settings.' 
+        } elseif ($throttlePercent -gt 20) { 
+            if ($isLaptop) { 
+                'Moderate CPU throttling (normal for laptops on battery).' 
+            } else { 
+                'Moderate CPU throttling. Consider checking thermals.' 
+            }
+        } elseif ($throttlePercent -gt 15) { 
+            'Minor CPU throttling detected.' 
+        } else { 
+            'CPU running at expected speed.' 
+        }
 
         return New-BottleneckResult -Id 'CPUThrottle' -Tier 'Standard' -Category 'CPU Throttling' -Impact $impact -Confidence $confidence -Effort $effort -Priority $priority -Evidence $evidence -FixId $fixId -Message $msg
     }
@@ -202,13 +230,23 @@ function Test-BottleneckThermal {
     $cpu = Get-BottleneckCPUTemp
     $gpu = Get-BottleneckGPUTemp
     $disk = Get-BottleneckDiskTemp
+    
+    # Build readable display values
+    $cpuDisplay = if ($cpu) { "${cpu}°C" } else { "no sensor" }
+    $gpuDisplay = if ($gpu) { "${gpu}°C" } else { "no sensor" }
+    $diskDisplay = if ($disk) { "${disk}°C" } else { "no sensor" }
+    
     $impact = 2
-    $confidence = 8
+    $confidence = if ($cpu -or $gpu -or $disk) { 8 } else { 3 }
     $effort = 2
     $priority = 1
-    $evidence = "CPU: $cpu°C, GPU: $gpu°C, Disk: $disk°C"
+    $evidence = "CPU: $cpuDisplay, GPU: $gpuDisplay, Disk: $diskDisplay"
     $fixId = ''
-    $msg = "Thermal status: CPU=$cpu°C, GPU=$gpu°C, Disk=$disk°C"
+    $msg = if (-not $cpu -and -not $gpu -and -not $disk) {
+        "No thermal sensors detected. Install OpenHardwareMonitor for temperature monitoring."
+    } else {
+        "Thermal status: CPU=$cpuDisplay, GPU=$gpuDisplay, Disk=$diskDisplay"
+    }
     if ($cpu -gt 85 -or $gpu -gt 85 -or $disk -gt 55) {
         $impact = 9
         $msg = "High temperature detected! CPU=$cpu°C, GPU=$gpu°C, Disk=$disk°C"
