@@ -22,8 +22,8 @@ function Import-ModuleFile($name) {
 Import-ModuleFile 'Bottleneck.Debug.ps1'
 Import-ModuleFile 'Bottleneck.HealthCheck.ps1'
 
-# Load performance and logging utilities
-Import-ModuleFile 'Bottleneck.Performance.ps1'
+# Load performance and logging utilities - dot-source at script scope to export Get-CachedCimInstance
+. (Join-Path $PSScriptRoot 'Bottleneck.Performance.ps1')
 Import-ModuleFile 'Bottleneck.Logging.ps1'
 
 # Initialize logging (guarded)
