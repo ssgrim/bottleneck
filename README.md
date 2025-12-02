@@ -63,6 +63,36 @@ A comprehensive Windows performance diagnostic and repair tool designed for IT p
    Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
    ```
 
+## Consolidated Scans
+
+- Computer scan (Deep):
+   ```powershell
+   pwsh -NoLogo -NoProfile -Command "Push-Location '$PWD'; & scripts/run-computer-scan.ps1; Pop-Location"
+   ```
+
+- Network scan (specify duration):
+   ```powershell
+   # 15 minutes
+   pwsh -NoLogo -NoProfile -Command "Push-Location '$PWD'; & scripts/run-network-scan.ps1 -DurationMinutes 15; Pop-Location"
+   # or 2 hours
+   pwsh -NoLogo -NoProfile -Command "Push-Location '$PWD'; & scripts/run-network-scan.ps1 -DurationHours 2; Pop-Location"
+   ```
+
+Legacy helpers like `run-quick.ps1`, `run-standard.ps1`, and `run-deep.ps1` are superseded by these two entry points.
+
+## Export Logs
+
+- VS Code task: Run `Collect Bottleneck logs` to bundle the latest network monitor outputs and reports into a timestamped zip under `Reports/`.
+- PowerShell:
+   - Latest of each type:
+      - `pwsh -NoLogo -NoProfile -Command "Push-Location '$PWD'; & scripts/collect-logs.ps1; Pop-Location"`
+   - Include everything:
+      - `pwsh -NoLogo -NoProfile -Command "Push-Location '$PWD'; & scripts/collect-logs.ps1 -IncludeAll; Pop-Location"`
+   - Custom directories:
+      - `pwsh -NoLogo -NoProfile -Command "Push-Location '$PWD'; & scripts/collect-logs.ps1 -ReportsDirs @('.\\Reports','.\\bottleneck\\Reports') -IncludeAll; Pop-Location"`
+
+The resulting zip (e.g., `Reports/bottleneck-logs-YYYY-MM-DD_HH-MM-SS.zip`) is ignored by git and ready to share for analysis.
+
 ### Usage
 
 Navigate to the `scripts` folder and run:
@@ -238,3 +268,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ---
 
 **Made with ❤️ for IT professionals and power users who want their systems running at peak performance.**
+\n\n## Phase 6: Advanced Alert Fusion\nSee PHASE6-PLAN.md for objectives and usage.

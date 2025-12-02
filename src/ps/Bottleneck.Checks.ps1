@@ -87,7 +87,8 @@ function Test-BottleneckAV {
 
 function Test-BottleneckTasks {
     try {
-        $tasks = Get-ScheduledTask | Where-Object { $_.State -eq 'Ready' -or $_.State -eq 'Running' }
+        # Consider only enabled, non-hidden tasks
+        $tasks = Get-ScheduledTask | Where-Object { $_.State -ne 'Disabled' -and ($_.Hidden -eq $false -or $_.Hidden -eq $null) }
         $count = $tasks.Count
 
         # Check for failed tasks
@@ -98,7 +99,10 @@ function Test-BottleneckTasks {
             $taskInfo = Get-ScheduledTaskInfo -TaskName $task.TaskName -TaskPath $task.TaskPath -ErrorAction SilentlyContinue
             if ($taskInfo) {
                 # Check last run result (0 = success)
-                if ($taskInfo.LastTaskResult -ne 0 -and $taskInfo.LastTaskResult -ne $null) {
+                # Only consider failures within the last 72 hours to avoid stale noise
+                $recentWindow = (Get-Date).AddHours(-72)
+                $lastRunTime = $taskInfo.LastRunTime
+                if ($lastRunTime -and ($lastRunTime -gt $recentWindow) -and $taskInfo.LastTaskResult -ne 0 -and $taskInfo.LastTaskResult -ne $null) {
                     $failedTasks += $task.TaskName
                 }
 
@@ -115,7 +119,7 @@ function Test-BottleneckTasks {
         $priority = 5
         $evidence = "Total: $count, Failed: $($failedTasks.Count), Heavy: $($heavyTasks.Count)"
         $fixId = ''
-        $msg = if ($failedTasks.Count -gt 5) { 'Multiple scheduled tasks have failed.' } elseif ($count -gt 50) { 'Too many scheduled tasks.' } else { 'Scheduled tasks normal.' }
+        $msg = if ($failedTasks.Count -gt 5) { 'Multiple scheduled tasks have recently failed.' } elseif ($count -gt 50) { 'Too many scheduled tasks.' } else { 'Scheduled tasks normal.' }
 
         return New-BottleneckResult -Id 'Tasks' -Tier 'Standard' -Category 'Tasks' -Impact $impact -Confidence $confidence -Effort $effort -Priority $priority -Evidence $evidence -FixId $fixId -Message $msg
     } catch {
@@ -126,7 +130,7 @@ function Test-BottleneckTasks {
 # Deep tier functions are now in Bottleneck.DeepScan.ps1
 # Bottleneck.Checks.ps1
 function Get-BottleneckChecks {
-    param([string]$Tier)
+    param([ValidateSet('Quick','Standard','Deep')][string]$Tier)
     $quick = @(
         'Test-BottleneckStorage',
         'Test-BottleneckPowerPlan',
@@ -192,7 +196,22 @@ function Get-BottleneckChecks {
 function Test-BottleneckStorage {
     $systemDrive = "$env:SystemDrive\\"
     $drive = Get-PSDrive -PSProvider 'FileSystem' | Where-Object { $_.Root -eq $systemDrive }
-    $freeGB = [math]::Round($drive.Free/1GB,2)
+
+    if (-not $drive) {
+        # Fallback to CIM if PSDrive lookup fails
+        try {
+            $logical = Get-CachedCimInstance -ClassName Win32_LogicalDisk -ErrorAction Stop | Where-Object { $_.DeviceID -eq $env:SystemDrive }
+            if ($logical) {
+                $freeGB = [math]::Round(($logical.FreeSpace/1GB),2)
+            } else {
+                $freeGB = 0
+            }
+        } catch {
+            $freeGB = 0
+        }
+    } else {
+        $freeGB = [math]::Round(($drive.Free/1GB),2)
+    }
     $impact = if ($freeGB -lt 10) { 8 } else { 2 }
     $confidence = 9
     $effort = 2

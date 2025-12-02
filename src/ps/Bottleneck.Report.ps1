@@ -3,18 +3,21 @@
 function Invoke-BottleneckReport {
     param(
         [Parameter(Mandatory)]$Results,
-        [Parameter()][string]$Tier = 'Quick',
-        [Parameter()][string]$ReportsPath = "$PSScriptRoot/../../Reports"
+        [Parameter()][ValidateSet('Quick','Standard','Deep')][string]$Tier = 'Quick',
+        [Parameter()][ValidateNotNullOrEmpty()][string]$ReportsPath = "$PSScriptRoot/../../Reports"
     )
     . $PSScriptRoot/Bottleneck.ReportUtils.ps1
     $timestamp = Get-Date -Format 'yyyy-MM-dd_HH-mm-ss'
+    $dateFolder = Get-Date -Format 'yyyy-MM-dd'
+    $datePath = Join-Path $ReportsPath $dateFolder
+    if (-not (Test-Path $datePath)) { New-Item -ItemType Directory -Path $datePath -Force | Out-Null }
     switch ($Tier) {
         'Quick' { $prefix = 'Basic-scan' }
         'Standard' { $prefix = 'Standard-scan' }
         'Deep' { $prefix = 'Full-scan' }
         default { $prefix = 'Scan' }
     }
-    $htmlPath = Join-Path $ReportsPath "$prefix-$timestamp.html"
+    $htmlPath = Join-Path $datePath "$prefix-$timestamp.html"
     # Also save to user's Documents\ScanReports
     $userDocs = [Environment]::GetFolderPath('MyDocuments')
     $userScanDir = Join-Path $userDocs 'ScanReports'
@@ -37,6 +40,13 @@ function Invoke-BottleneckReport {
     }
     $prev = Get-BottleneckPreviousScan -ReportsPath $ReportsPath
     $eventSummary = Get-BottleneckEventLogSummary -Days 7
+    # Try to compute network fused alert level from recent monitor CSV
+    $fusedAlert = $null
+    try {
+        $rca = Invoke-BottleneckNetworkRootCause -DisableProbes -DisableTraceroute
+        if ($rca -and $rca.FusedAlertLevel) { $fusedAlert = $rca.FusedAlertLevel }
+    }
+    catch { }
     $html = @"
 <html>
 <head>
@@ -246,33 +256,136 @@ ul li {
     content: '🤖 ';
 }
 </style>
+</head>
+<body>
 <script>
 function getAIHelp(checkId, evidence, message, provider) {
     const systemInfo = 'Computer: $env:COMPUTERNAME, OS: Windows';
-    const prompt = encodeURIComponent(`I'm troubleshooting a performance issue on my Windows computer.
+    const prompt = 'I am troubleshooting a performance issue on my Windows computer.\n\nIssue: '+checkId+'\nDescription: '+message+'\nEvidence: '+evidence+'\nSystem: '+systemInfo+'\n\nPlease provide:\n1. Root cause analysis\n2. Step-by-step troubleshooting steps\n3. Recommended fixes (prioritized)\n4. Prevention tips';
 
-Issue: ${checkId}
-Description: ${message}
-Evidence: ${evidence}
-System: ${systemInfo}
-
-Please provide:
-1. Root cause analysis
-2. Step-by-step troubleshooting steps
-3. Recommended fixes (prioritized)
-4. Prevention tips`);
-    
+    let searchUrl;
     if (provider === 'chatgpt') {
-        window.open(`https://chat.openai.com/?q=${prompt}`, '_blank');
+        searchUrl = 'https://chat.openai.com/?q='+encodeURIComponent(prompt);
     } else if (provider === 'copilot') {
-        window.open(`https://copilot.microsoft.com/?q=${prompt}`, '_blank');
+        searchUrl = 'https://copilot.microsoft.com/?q='+encodeURIComponent(prompt);
     } else if (provider === 'gemini') {
-        window.open(`https://gemini.google.com/app?q=${prompt}`, '_blank');
+        searchUrl = 'https://gemini.google.com/app?q='+encodeURIComponent(prompt);
+    } else {
+        searchUrl = 'https://www.google.com/search?q='+encodeURIComponent(prompt);
+    }
+    window.open(searchUrl, '_blank');
+}
+
+function openWindowsSetting(settingPath) {
+    const link = document.createElement('a');
+    link.href = settingPath;
+    link.target = '_blank';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
+function runFix(fixType) {
+    const fixActions = {
+        'Cleanup': {
+            title: 'Disk Cleanup',
+            description: 'This will open Windows Disk Cleanup utility.',
+            action: () => openWindowsSetting('ms-settings:storagesense')
+        },
+        'Retrim': {
+            title: 'SSD Optimization',
+            description: 'This will open the Optimize Drives utility.',
+            action: () => openWindowsSetting('ms-settings:deviceperformance')
+        },
+        'PowerPlanHighPerformance': {
+            title: 'Power Plan',
+            description: 'This will open Power Options to change to High Performance mode.',
+            action: () => openWindowsSetting('ms-settings:powersleep')
+        },
+        'TriggerUpdate': {
+            title: 'Windows Update',
+            description: 'This will open Windows Update settings.',
+            action: () => openWindowsSetting('ms-settings:windowsupdate')
+        },
+        'Defragment': {
+            title: 'Defragment Drive',
+            description: 'This will open the Optimize Drives utility.',
+            action: () => openWindowsSetting('ms-settings:deviceperformance')
+        },
+        'MemoryDiagnostic': {
+            title: 'Memory Diagnostic',
+            description: 'To run Windows Memory Diagnostic, press Win+R and type: mdsched.exe',
+            action: () => alert('To run Windows Memory Diagnostic:\\n1. Press Win+R\\n2. Type: mdsched.exe\\n3. Press Enter\\n4. Choose \\'Restart now and check for problems\\'')
+        },
+        'RestartServices': {
+            title: 'Services Management',
+            description: 'This will open the Services management console.',
+            action: () => openWindowsSetting('ms-settings:appsfeatures')
+        },
+        'HighCPUProcess': {
+            title: 'Task Manager',
+            description: 'Opening Task Manager to manage processes.',
+            action: () => alert('To open Task Manager:\\n1. Press Ctrl+Shift+Esc\\nOR\\n2. Right-click taskbar and select Task Manager\\n\\nClose high-CPU processes from the Processes tab.')
+        },
+        'HighMemoryUsage': {
+            title: 'Task Manager',
+            description: 'Opening Task Manager to manage memory.',
+            action: () => alert('To open Task Manager:\\n1. Press Ctrl+Shift+Esc\\nOR\\n2. Right-click taskbar and select Task Manager\\n\\nSort by Memory column to find heavy users.')
+        },
+        'FanIssue': {
+            title: 'Fan Issue Alert',
+            description: 'Manual fan inspection required.',
+            action: () => alert('⚠️ COOLING SYSTEM CHECK REQUIRED\\n\\n1. Shut down the computer\\n2. Unplug power cable\\n3. Open case and inspect fans\\n4. Clean dust from vents and fans\\n5. Ensure all fans spin freely\\n6. Replace failed fans\\n\\nIf laptop: Use compressed air to clean vents while off.')
+        },
+        'HighTemperature': {
+            title: 'Critical Temperature Alert',
+            description: 'CRITICAL: Immediate cooling system check needed!',
+            action: () => alert('🔥 CRITICAL TEMPERATURE WARNING\\n\\nIMMEDIATE ACTIONS REQUIRED:\\n1. Save work and shut down NOW\\n2. Let system cool for 30 minutes\\n3. Clean all vents and fans\\n4. Check if fans are working\\n5. Reapply thermal paste if needed\\n6. Do NOT use until cooling is verified\\n\\nContinued use may cause permanent hardware damage!')
+        },
+        'StuckProcess': {
+            title: 'Task Manager',
+            description: 'Opening Task Manager to end stuck processes.',
+            action: () => alert('To open Task Manager:\\n1. Press Ctrl+Shift+Esc\\n2. Find unresponsive process\\n3. Click \\'End Task\\'\\n\\nIf process won\\'t end, right-click and select \\'Go to details\\', then right-click the process and select \\'End process tree\\'.')
+        },
+        'JavaHeapIssue': {
+            title: 'Java Heap Configuration',
+            description: 'Java heap memory adjustment needed.',
+            action: () => alert('JAVA HEAP MEMORY ADJUSTMENT\\n\\nFor Java applications:\\n1. Locate the application\\'s startup script or shortcut\\n2. Add or modify: -Xmx4G (for 4GB max heap)\\n3. Adjust based on available RAM\\n\\nFor Minecraft: Edit launcher settings\\nFor other Java apps: Consult application documentation')
+        }
+    };
+
+    const fix = fixActions[fixType];
+    if (fix) {
+        fix.action();
+    } else {
+        alert('This fix requires manual intervention. Please follow the recommended steps.');
     }
 }
+
+function openSettingForCategory(category) {
+    const settingMappings = {
+        'Storage': 'ms-settings:storagesense',
+        'RAM': 'ms-settings:about',
+        'CPU': 'ms-settings:deviceperformance',
+        'PowerPlan': 'ms-settings:powersleep',
+        'Startup': 'ms-settings:startupapps',
+        'Network': 'ms-settings:network',
+        'Update': 'ms-settings:windowsupdate',
+        'Driver': 'ms-settings:windowsupdate-options',
+        'Browser': 'ms-settings:appsfeatures',
+        'GPU': 'ms-settings:display',
+        'AV': 'ms-settings:windowsdefender',
+        'Thermal': 'ms-settings:deviceperformance',
+        'Battery': 'ms-settings:batterysaver',
+        'ServiceHealth': 'ms-settings:appsfeatures',
+        'DNS': 'ms-settings:network-ethernet',
+        'Firewall': 'ms-settings:windowsdefender'
+    };
+
+    const settingUri = settingMappings[category] || 'ms-settings:';
+    openWindowsSetting(settingUri);
+}
 </script>
-</head>
-<body>
 <div class="container">
 <div class="header">
 <h1>Performance Analysis Report</h1>
@@ -303,6 +416,14 @@ Please provide:
 <div class="metric-label">Avg Performance Score</div>
 <div class="metric-value">$([math]::Round(($Results | Measure-Object Score -Average).Average,1))</div>
 </div>
+$(if ($fusedAlert) { @"
+<div class=\"metrics-grid\">
+    <div class=\"metric-card\">
+        <div class=\"metric-label\">Network Fused Alert</div>
+        <div class=\"metric-value\">$fusedAlert</div>
+    </div>
+</div>
+"@ })
 </div>
 </div>
 "@
@@ -325,9 +446,9 @@ Please provide:
 $(if ($recommendations.CriticalFixes.Count -gt 0) { @"
 <h3 style="font-size:16px;color:#dc3545;margin:20px 0 10px 0;">🔴 Critical Fixes Required</h3>
 <ul>
-$(foreach ($fix in $recommendations.CriticalFixes) { 
+$(foreach ($fix in $recommendations.CriticalFixes) {
     $escapedFix = $fix -replace "'", "&#39;" -replace '"', '&quot;'
-    "<li>$fix<button class='ai-help-btn' onclick='getAIHelp(`"Critical Issue`", `"$escapedFix`", `"Critical fix needed`", `"copilot`")'>Ask AI</button></li>" 
+    "<li>$fix<button class='ai-help-btn' onclick='getAIHelp(`"Critical Issue`", `"$escapedFix`", `"Critical fix needed`", `"copilot`")'>Ask AI</button></li>"
 })
 </ul>
 "@ })
@@ -432,38 +553,80 @@ $(foreach ($r in $Results) {
                 'JavaHeapIssue' { $recommendedSteps = 'Increase Java heap with -Xmx flag, monitor for memory leaks with jmap/VisualVM, restart Java apps regularly, tune GC settings for workload.' }
                 default { $recommendedSteps = 'Review evidence and take appropriate action based on impact severity.' }
             }
-        } else {
+        }
+        else {
             $recommendedSteps = '<span style="color:#28a745;font-weight:600;">✓ No action needed</span>'
         }
 
         $fixBtn = ''
         switch ($r.FixId) {
-            'Cleanup' { $fixBtn = '<button onclick="location.href=\"powershell:Invoke-BottleneckFixCleanup -Confirm\"">Run Fix</button>' }
-            'Retrim' { $fixBtn = '<button onclick="location.href=\"powershell:Invoke-BottleneckFixRetrim -Confirm\"">Run Fix</button>' }
-            'PowerPlanHighPerformance' { $fixBtn = '<button onclick="location.href=\"powershell:Set-BottleneckPowerPlanHighPerformance\"">Run Fix</button>' }
-            'TriggerUpdate' { $fixBtn = '<button onclick="location.href=\"powershell:Invoke-BottleneckFixTriggerUpdate -Confirm\"">Run Fix</button>' }
-            'Defragment' { $fixBtn = '<button onclick="location.href=\"powershell:Invoke-BottleneckFixDefragment -Confirm\"">Run Fix</button>' }
-            'MemoryDiagnostic' { $fixBtn = '<button onclick="location.href=\"powershell:Invoke-BottleneckFixMemoryDiagnostic -Confirm\"">Run Fix</button>' }
-            'RestartServices' { $fixBtn = '<button onclick="location.href=\"powershell:Invoke-BottleneckFixRestartServices -Confirm\"">Run Fix</button>' }
-            'HighCPUProcess' { $fixBtn = '<button onclick="location.href=\"powershell:Start-Process taskmgr\"">Open Task Manager</button>' }
-            'HighMemoryUsage' { $fixBtn = '<button onclick="location.href=\"powershell:Start-Process taskmgr\"">Open Task Manager</button>' }
-            'FanIssue' { $fixBtn = '<button onclick="alert(''Manual fan inspection required. Shut down and check cooling system.'')">View Alert</button>' }
-            'HighTemperature' { $fixBtn = '<button onclick="alert(''CRITICAL: Shut down system and check cooling immediately!'')">View Alert</button>' }
-            'StuckProcess' { $fixBtn = '<button onclick="location.href=\"powershell:Start-Process taskmgr\"">Open Task Manager</button>' }
-            'JavaHeapIssue' { $fixBtn = '<button onclick="alert(''Review Java processes in Task Manager and adjust heap settings.'')">View Alert</button>' }
+            'Cleanup' { $fixBtn = '<button onclick="runFix(''Cleanup'')">🔧 Open Storage Settings</button>' }
+            'Retrim' { $fixBtn = '<button onclick="runFix(''Retrim'')">🔧 Optimize Drive</button>' }
+            'PowerPlanHighPerformance' { $fixBtn = '<button onclick="runFix(''PowerPlanHighPerformance'')">⚡ Change Power Plan</button>' }
+            'TriggerUpdate' { $fixBtn = '<button onclick="runFix(''TriggerUpdate'')">🔄 Open Windows Update</button>' }
+            'Defragment' { $fixBtn = '<button onclick="runFix(''Defragment'')">🔧 Defragment Drive</button>' }
+            'MemoryDiagnostic' { $fixBtn = '<button onclick="runFix(''MemoryDiagnostic'')">🔍 Memory Diagnostic</button>' }
+            'RestartServices' { $fixBtn = '<button onclick="runFix(''RestartServices'')">⚙️ Manage Services</button>' }
+            'HighCPUProcess' { $fixBtn = '<button onclick="runFix(''HighCPUProcess'')">📊 Task Manager</button>' }
+            'HighMemoryUsage' { $fixBtn = '<button onclick="runFix(''HighMemoryUsage'')">📊 Task Manager</button>' }
+            'FanIssue' { $fixBtn = '<button onclick="runFix(''FanIssue'')" style="background:#ff6b6b;">⚠️ View Instructions</button>' }
+            'HighTemperature' { $fixBtn = '<button onclick="runFix(''HighTemperature'')" style="background:#dc3545;">🔥 CRITICAL</button>' }
+            'StuckProcess' { $fixBtn = '<button onclick="runFix(''StuckProcess'')">❌ End Process</button>' }
+            'JavaHeapIssue' { $fixBtn = '<button onclick="runFix(''JavaHeapIssue'')">☕ Java Config</button>' }
             default { $fixBtn = '' }
         }
-        
+
+        # Add "Open Settings" button for categories without specific fixes
+        if (!$fixBtn -and $r.Impact -gt 3) {
+            $categoryId = $r.Id
+            $fixBtn = "<button onclick=`"openSettingForCategory('$categoryId')`" style=`"background:#6c757d;`">⚙️ Open Settings</button>"
+        }
+
         # Add AI help button for issues with impact > 5
         $aiBtn = ''
         if ($r.Impact -gt 5) {
             $escapedEvidence = $r.Evidence -replace "'", "&#39;" -replace '"', '&quot;'
             $escapedMessage = $r.Message -replace "'", "&#39;" -replace '"', '&quot;'
             $escapedId = $r.Id -replace "'", "&#39;" -replace '"', '&quot;'
-            $aiBtn = "<button class='ai-help-btn' onclick='getAIHelp(`"$escapedId`", `"$escapedEvidence`", `"$escapedMessage`", `"copilot`")'>Get AI Help</button>"
+            $aiBtn = "<button class='ai-help-btn' onclick=`"getAIHelp('$escapedId', '$escapedEvidence', '$escapedMessage', 'copilot')`">Get AI Help</button>"
         }
-        
-        $html += "<tr><td>$($r.Category)</td><td>$($r.Message)</td><td>$scoreCell</td><td>$($r.Evidence)</td><td>$recommendedSteps</td><td>$fixBtn$aiBtn</td></tr>"
+
+        # Sanitize evidence for missing values (n/a fallback)
+        $evidenceText = $r.Evidence
+        if ($null -eq $evidenceText -or $evidenceText -eq '') { $evidenceText = 'n/a' }
+        # Network avg ping fallback
+        if ($r.Id -eq 'Network' -and $evidenceText -match ':\s*ms($|\b)') {
+            try {
+                $tc = Test-Connection -ComputerName 'www.yahoo.com' -Count 3 -ErrorAction SilentlyContinue
+                if ($tc) { $avg = [math]::Round((($tc | Measure-Object -Property ResponseTime -Average).Average), 1); $evidenceText = $evidenceText -replace ':\s*ms', (": $avg ms") }
+                else { $evidenceText = $evidenceText -replace ':\s*ms', ': n/a' }
+            }
+            catch { $evidenceText = $evidenceText -replace ':\s*ms', ': n/a' }
+        }
+        # Thermal evidence fallback
+        $evidenceText = $evidenceText -replace 'CPU:\s*°C', 'CPU: n/a' -replace 'GPU:\s*°C', 'GPU: n/a' -replace 'Disk:\s*°C', 'Disk: n/a'
+        # Battery capacity fallback
+        $evidenceText = $evidenceText -replace 'Capacity:\s*/', 'Capacity: n/a'
+        $html += "<tr><td>$($r.Category)</td><td>$($r.Message)</td><td>$scoreCell</td><td>$evidenceText</td><td>$recommendedSteps</td><td>$fixBtn$aiBtn</td></tr>"
+    }
+    # Optional AI triage stub
+    if ($Global:Bottleneck_EnableAI -eq $true) {
+        try {
+            $net = $Results | Where-Object { $_.Category -eq 'Network' }
+            $cpu = $Results | Where-Object { $_.Category -eq 'CPU' }
+            $disk = $Results | Where-Object { $_.Category -eq 'Disk' }
+            $summary = @()
+            if ($net) { $summary += "Network checks: $($net.Count)" }
+            if ($cpu) { $summary += "CPU checks: $($cpu.Count)" }
+            if ($disk) { $summary += "Disk checks: $($disk.Count)" }
+            $recommendations = @()
+            if ($net | Where-Object { $_.Impact -gt 5 }) { $recommendations += 'Investigate DNS and router stability; test on Ethernet.' }
+            if ($cpu | Where-Object { $_.Impact -gt 5 }) { $recommendations += 'Reduce background load; check throttling and power plan.' }
+            if ($disk | Where-Object { $_.Impact -gt 5 }) { $recommendations += 'Check SMART, queue length; update storage drivers.' }
+            $aiSection = "<div class='section'><h2>AI Triage</h2><ul>" + ($summary | ForEach-Object { "<li>$_</li>" } -join '') + "</ul><h3>Recommendations</h3><ul>" + ($recommendations | ForEach-Object { "<li>$_</li>" } -join '') + "</ul></div>"
+            $html += $aiSection
+        }
+        catch {}
     }
     $html += "</table></div></div>"
     $html += "<div class='footer'>Generated by Bottleneck Performance Analyzer | $timestamp</div>"

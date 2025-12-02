@@ -1,0 +1,110 @@
+{
+  "quick": {
+    "description": "Fast 5-check scan for immediate insights",
+    "minutes": 2,
+    "ai": false,
+    "traceIntervalMinutes": 1,
+    "targetHost": "www.yahoo.com",
+    "dnsPrimary": "1.1.1.1",
+    "dnsSecondary": "8.8.8.8",
+    "tier": "Quick"
+  },
+  "standard": {
+    "description": "Balanced 25-check scan for general diagnostics",
+    "minutes": 15,
+    "ai": true,
+    "traceIntervalMinutes": 5,
+    "targetHost": "www.yahoo.com",
+    "dnsPrimary": "1.1.1.1",
+    "dnsSecondary": "8.8.8.8",
+    "tier": "Standard"
+  },
+  "deep": {
+    "description": "Comprehensive 70+ check scan with extended monitoring",
+    "minutes": 480,
+    "ai": true,
+    "traceIntervalMinutes": 5,
+    "targetHost": "www.yahoo.com",
+    "dnsPrimary": "1.1.1.1",
+    "dnsSecondary": "8.8.8.8",
+    "tier": "Deep"
+  },
+  "DesktopGamer": {
+    "description": "Optimized for gaming PCs: thermal, GPU, network latency, and performance focus",
+    "minutes": 10,
+    "ai": true,
+    "traceIntervalMinutes": 3,
+    "targetHost": "8.8.8.8",
+    "dnsPrimary": "1.1.1.1",
+    "dnsSecondary": "8.8.8.8",
+    "tier": "Standard",
+    "emphasis": ["thermal", "gpu", "network", "performance"],
+    "includedChecks": [
+      "CPU", "RAM", "Storage", "PowerPlan", "Network",
+      "GPU", "Thermal", "CPUThrottle", "Memory", "Disk",
+      "NetworkAdapter", "Bandwidth", "Browser", "BackgroundProcesses"
+    ],
+    "excludedChecks": [
+      "Services", "Security", "Updates", "GroupPolicy", "Java"
+    ]
+  },
+  "RemoteWorker": {
+    "description": "Optimized for remote work: network reliability, VPN, battery, and connectivity focus",
+    "minutes": 20,
+    "ai": true,
+    "traceIntervalMinutes": 5,
+    "targetHost": "www.office.com",
+    "dnsPrimary": "1.1.1.1",
+    "dnsSecondary": "8.8.8.8",
+    "tier": "Standard",
+    "emphasis": ["network", "connectivity", "battery", "reliability"],
+    "includedChecks": [
+      "CPU", "RAM", "Storage", "Network", "NetworkAdapter",
+      "VPN", "DNS", "Bandwidth", "Battery", "PowerPlan",
+      "AV", "Firewall", "Browser", "Updates", "Services"
+    ],
+    "excludedChecks": [
+      "GPU", "Java", "GroupPolicy"
+    ]
+  },
+  "DeveloperLaptop": {
+    "description": "Optimized for developers: disk I/O, memory, services, and multitasking focus",
+    "minutes": 15,
+    "ai": true,
+    "traceIntervalMinutes": 5,
+    "targetHost": "github.com",
+    "dnsPrimary": "1.1.1.1",
+    "dnsSecondary": "8.8.8.8",
+    "tier": "Standard",
+    "emphasis": ["disk", "memory", "services", "performance"],
+    "includedChecks": [
+      "CPU", "RAM", "Storage", "PowerPlan", "Network",
+      "Memory", "Disk", "DiskSMART", "NetworkAdapter", "Services",
+      "WindowsFeatures", "Browser", "BackgroundProcesses", "Events",
+      "Battery", "Java"
+    ],
+    "excludedChecks": [
+      "GPU", "Thermal", "GroupPolicy"
+    ]
+  },
+  "ServerDefault": {
+    "description": "Optimized for servers: services, security, updates, and reliability focus",
+    "minutes": 30,
+    "ai": true,
+    "traceIntervalMinutes": 10,
+    "targetHost": "8.8.8.8",
+    "dnsPrimary": "1.1.1.1",
+    "dnsSecondary": "8.8.8.8",
+    "tier": "Deep",
+    "emphasis": ["services", "security", "reliability", "updates"],
+    "includedChecks": [
+      "CPU", "RAM", "Storage", "Network", "Services",
+      "Security", "AV", "Firewall", "Updates", "WindowsFeatures",
+      "GroupPolicy", "Events", "Disk", "DiskSMART", "Memory",
+      "NetworkAdapter", "DNS", "SMART", "EventLogAnalysis"
+    ],
+    "excludedChecks": [
+      "Battery", "Browser", "GPU", "Thermal", "Java"
+    ]
+  }
+}

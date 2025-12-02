@@ -1,13 +1,21 @@
 # Bottleneck.psm1
 # Main module entry point
 
+function Load-ModuleFile($name) {
+    try {
+        . (Join-Path $PSScriptRoot $name)
+    } catch {
+        Write-Warning "Failed to load module file '$name': $_"
+    }
+}
+
 # Load performance and logging utilities first
-. $PSScriptRoot/Bottleneck.Performance.ps1
-. $PSScriptRoot/Bottleneck.Logging.ps1
+Load-ModuleFile 'Bottleneck.Performance.ps1'
+Load-ModuleFile 'Bottleneck.Logging.ps1'
 
 # Initialize logging
 Initialize-BottleneckLogging
-. $PSScriptRoot/Bottleneck.Elevation.ps1
+Load-ModuleFile 'Bottleneck.Elevation.ps1'
 # Admin warning suppression flag
 $script:SuppressAdminWarning = $false
 
@@ -24,37 +32,37 @@ function Set-BottleneckAdminWarning {
 }
 
 # Load other modules
-. $PSScriptRoot/Bottleneck.Constants.ps1
-. $PSScriptRoot/Bottleneck.Utils.ps1
-. $PSScriptRoot/Bottleneck.Checks.ps1
-. $PSScriptRoot/Bottleneck.Fixes.ps1
-. $PSScriptRoot/Bottleneck.Report.ps1
-. $PSScriptRoot/Bottleneck.ReportUtils.ps1
-. $PSScriptRoot/Bottleneck.Thermal.ps1
-. $PSScriptRoot/Bottleneck.PDF.ps1
-. $PSScriptRoot/Bottleneck.Battery.ps1
-. $PSScriptRoot/Bottleneck.Disk.ps1
-. $PSScriptRoot/Bottleneck.Memory.ps1
-. $PSScriptRoot/Bottleneck.CPUThrottle.ps1
-. $PSScriptRoot/Bottleneck.Services.ps1
-. $PSScriptRoot/Bottleneck.WindowsFeatures.ps1
-. $PSScriptRoot/Bottleneck.Network.ps1
-. $PSScriptRoot/Bottleneck.Security.ps1
-. $PSScriptRoot/Bottleneck.UserExperience.ps1
-. $PSScriptRoot/Bottleneck.DeepScan.ps1
-. $PSScriptRoot/Bottleneck.SystemPerformance.ps1
-. $PSScriptRoot/Bottleneck.Parallel.ps1
-. $PSScriptRoot/Bottleneck.NetworkScan.ps1
-. $PSScriptRoot/Bottleneck.NetworkDeep.ps1
-. $PSScriptRoot/Bottleneck.NetworkProbes.ps1
-. $PSScriptRoot/Bottleneck.ComputerScan.ps1
-. $PSScriptRoot/Bottleneck.Version.ps1
-. $PSScriptRoot/Bottleneck.NetworkMonitor.ps1
-. $PSScriptRoot/Bottleneck.Speedtest.ps1
-. $PSScriptRoot/Bottleneck.Metrics.ps1
-. $PSScriptRoot/Bottleneck.Alerts.ps1
-. $PSScriptRoot/Bottleneck.Scheduler.ps1
-. $PSScriptRoot/Bottleneck.Elevation.ps1
+Load-ModuleFile 'Bottleneck.Constants.ps1'
+Load-ModuleFile 'Bottleneck.Utils.ps1'
+Load-ModuleFile 'Bottleneck.Checks.ps1'
+Load-ModuleFile 'Bottleneck.Fixes.ps1'
+Load-ModuleFile 'Bottleneck.Report.ps1'
+Load-ModuleFile 'Bottleneck.ReportUtils.ps1'
+Load-ModuleFile 'Bottleneck.Thermal.ps1'
+Load-ModuleFile 'Bottleneck.PDF.ps1'
+Load-ModuleFile 'Bottleneck.Battery.ps1'
+Load-ModuleFile 'Bottleneck.Disk.ps1'
+Load-ModuleFile 'Bottleneck.Memory.ps1'
+Load-ModuleFile 'Bottleneck.CPUThrottle.ps1'
+Load-ModuleFile 'Bottleneck.Services.ps1'
+Load-ModuleFile 'Bottleneck.WindowsFeatures.ps1'
+Load-ModuleFile 'Bottleneck.Network.ps1'
+Load-ModuleFile 'Bottleneck.Security.ps1'
+Load-ModuleFile 'Bottleneck.UserExperience.ps1'
+Load-ModuleFile 'Bottleneck.DeepScan.ps1'
+Load-ModuleFile 'Bottleneck.SystemPerformance.ps1'
+Load-ModuleFile 'Bottleneck.Parallel.ps1'
+Load-ModuleFile 'Bottleneck.NetworkScan.ps1'
+Load-ModuleFile 'Bottleneck.NetworkDeep.ps1'
+Load-ModuleFile 'Bottleneck.NetworkProbes.ps1'
+Load-ModuleFile 'Bottleneck.ComputerScan.ps1'
+Load-ModuleFile 'Bottleneck.Version.ps1'
+Load-ModuleFile 'Bottleneck.NetworkMonitor.ps1'
+Load-ModuleFile 'Bottleneck.Speedtest.ps1'
+Load-ModuleFile 'Bottleneck.Metrics.ps1'
+Load-ModuleFile 'Bottleneck.Alerts.ps1'
+Load-ModuleFile 'Bottleneck.Scheduler.ps1'
+Load-ModuleFile 'Bottleneck.Elevation.ps1'
 
 # Check admin rights
 $script:IsAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)

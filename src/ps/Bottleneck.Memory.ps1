@@ -4,7 +4,7 @@
 function Test-BottleneckMemoryHealth {
     try {
         # Check for memory errors in event log
-        $memErrors = Get-WinEvent -FilterHashtable @{LogName='System'; Id=1101,1001; StartTime=(Get-Date).AddDays(-7)} -ErrorAction SilentlyContinue
+        $memErrors = Get-SafeWinEvent -FilterHashtable @{LogName='System'; Id=1101,1001; StartTime=(Get-Date).AddDays(-7)} -MaxEvents 100
         $errorCount = if ($memErrors) { $memErrors.Count } else { 0 }
 
         # Check for ECC errors if available

@@ -3,8 +3,8 @@
 
 function ConvertTo-BottleneckPDF {
     param(
-        [Parameter(Mandatory)][string]$HtmlContent,
-        [Parameter(Mandatory)][string]$OutputPath
+        [Parameter(Mandatory)][ValidateNotNullOrEmpty()][string]$HtmlContent,
+        [Parameter(Mandatory)][ValidateNotNullOrEmpty()][string]$OutputPath
     )
 
     # Create a temporary HTML file

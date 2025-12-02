@@ -13,17 +13,17 @@ function Get-CachedCimInstance {
     param(
         [Parameter(Mandatory)]
         [string]$ClassName,
-        
+
         [Parameter()]
         [string]$Namespace = "root\cimv2",
-        
+
         [Parameter()]
         [switch]$Force
     )
-    
+
     $key = "$Namespace\$ClassName"
     $now = Get-Date
-    
+
     # Check if cached and not expired
     if ($script:CIMCache.ContainsKey($key) -and -not $Force) {
         $cached = $script:CIMCache[$key]
@@ -32,7 +32,7 @@ function Get-CachedCimInstance {
             return $cached.Data
         }
     }
-    
+
     # Query and cache
     Write-Verbose "Querying CIM: $ClassName"
     try {
@@ -56,17 +56,18 @@ function Invoke-WithTimeout {
     param(
         [Parameter(Mandatory)]
         [scriptblock]$ScriptBlock,
-        
+
         [Parameter()]
+        [ValidateRange(5, 300)]
         [int]$TimeoutSeconds = 30,
-        
+
         [Parameter()]
         [hashtable]$ArgumentList = @{}
     )
-    
+
     $job = Start-Job -ScriptBlock $ScriptBlock -ArgumentList $ArgumentList
     $completed = Wait-Job $job -Timeout $TimeoutSeconds
-    
+
     if ($completed) {
         $result = Receive-Job $job
         Remove-Job $job -Force

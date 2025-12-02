@@ -32,6 +32,19 @@ function Test-BottleneckDNS {
         $fixId = ''
         $msg = if ($avgDNS -gt 200) { 'DNS resolution is very slow.' } elseif ($avgDNS -gt 100) { 'DNS resolution slower than optimal.' } else { 'DNS resolution normal.' }
 
+        # Supplement with recent DNS error events (last 7 days) when available
+        try {
+            $dnsEvents = Get-SafeWinEvent -FilterHashtable @{ LogName = 'Microsoft-Windows-DNS-Client/Operational'; StartTime = (Get-Date).AddDays(-7) } -MaxEvents 200 -TimeoutSeconds 10
+            if ($dnsEvents -and $dnsEvents.Count -gt 0) {
+                $recentErrors = $dnsEvents | Where-Object { $_.LevelDisplayName -eq 'Error' } | Select-Object -First 3
+                if ($recentErrors.Count -gt 0) {
+                    $evidence += "; Recent DNS errors detected"
+                    $msg = 'DNS resolution issues observed recently.'
+                    $impact = [Math]::Max($impact, 5)
+                }
+            }
+        } catch {}
+
         return New-BottleneckResult -Id 'DNS' -Tier 'Standard' -Category 'DNS' -Impact $impact -Confidence $confidence -Effort $effort -Priority $priority -Evidence $evidence -FixId $fixId -Message $msg
     } catch {
         return $null
@@ -177,11 +190,9 @@ function Test-BottleneckFirewall {
         $ruleCount = $rules.Count
 
         # Check for blocked connections in last 24 hours
-        $blockedEvents = Get-WinEvent -FilterHashtable @{
-            LogName='Security'
-            Id=5157
-            StartTime=(Get-Date).AddHours(-24)
-        } -ErrorAction SilentlyContinue
+        $fwStart = (Get-Date).AddHours(-24)
+        $fwFilter = @{ LogName='Security'; Id=5157; StartTime=$fwStart }
+        $blockedEvents = Get-SafeWinEvent -FilterHashtable $fwFilter -MaxEvents 100 -TimeoutSeconds 10
         $blockedCount = if ($blockedEvents) { $blockedEvents.Count } else { 0 }
 
         # Check for third-party firewalls

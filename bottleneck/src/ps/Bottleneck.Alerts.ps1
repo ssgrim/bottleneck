@@ -264,3 +264,24 @@ function New-AlertThresholdConfig {
     Write-Host "  Edit this file to customize alert thresholds." -ForegroundColor Gray
 }
 
+# Phase 6: Fused alert computation
+function Get-FusedAlertLevel {
+    [CmdletBinding()] param(
+        [Parameter()][object[]]$LatencySpikes = @(),
+        [Parameter()][object[]]$LossBursts = @(),
+        [Parameter()][object[]]$JitterVolatility = @()
+    )
+    $latencyCount = ($LatencySpikes | Measure-Object).Count
+    $lossCount = ($LossBursts | Measure-Object).Count
+    $jitterCount = ($JitterVolatility | Measure-Object).Count
+    # Simple weighted score; refine in follow-ups
+    $score = (2*$latencyCount) + (3*$lossCount) + (1*$jitterCount)
+    switch ($score) {
+        { $_ -ge 12 } { return 'Critical' }
+        { $_ -ge 7 }  { return 'High' }
+        { $_ -ge 3 }  { return 'Moderate' }
+        { $_ -ge 1 }  { return 'Low' }
+        default       { return 'None' }
+    }
+}
+Export-ModuleMember -Function Get-FusedAlertLevel
